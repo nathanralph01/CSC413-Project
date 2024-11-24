@@ -36,3 +36,4 @@ def split_data(data_set, train_split, val_split, test_split):
     """
     pass
 
+path = ''
