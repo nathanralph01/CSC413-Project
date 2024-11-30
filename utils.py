@@ -1,4 +1,8 @@
 import os
+import torch
+from torchtext.vocab import GloVe
+import numpy as np
+from utils import *
 
 def load_data(path):
     """
@@ -25,7 +29,7 @@ def load_data(path):
     return data_set
 
 
-def split_data(data_set, train_split, val_split, test_split):
+def split_data(data_set, train_split, val_split):
     """
     Split data into separate training, validation, and test sets.
     
@@ -40,4 +44,28 @@ def split_data(data_set, train_split, val_split, test_split):
     val_num = train_num + int(total*val_split)
 
     return data_set[:train_num], data_set[train_num:val_num], data_set[val_num:]
+
+
+def embed_data(data):
+    indices = []
+
+    for token in data:
+        if token in glove.stoi:
+            indices.append(glove.stoi[token])
+    ind_tensor = torch.tensor(indices, dtype=torch.long).unsqueeze(0)
+    return ind_tensor
+
+
+global glove 
+glove = GloVe(name="6B",dim=300)
+'''
+data = load_data('data/merged_data.txt')
+# pre-trained glove
+input = "Once upon a time there was"
+embed_input = embed_data(input.split(), glove)
+
+train_data, val_data, test_data = split_data(data, 0.7, 0.15)
+train_data_glove = embed_data(train_data, glove)
+'''
+
 
