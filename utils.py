@@ -6,7 +6,7 @@ from utils import *
 
 def load_data(path):
     """
-    Load data set into a list
+    Load data set into a list. For each story, the data should look like: (first few words, remainder of story)
 
     Parameters:
         Path: Path of the data set
@@ -15,17 +15,23 @@ def load_data(path):
         raise Exception("File path {} does not exist".format(path))
     data_set = []
     with open(path, "r") as file:
-        story = ""
+        x, t = [], []
         for line in file:
             stripped = line.strip()
+            words = stripped.split()
 
             if stripped == '':
-                if story:
-                    data_set.append(story)
-                    story = ""
+                if x and t:
+                    data_set.append((x, t[:300]))
+                    x, t = [], []
             else:
-                story +=  " " + stripped
-        data_set.append(story)
+                # Check if it is a new story
+                if not x:
+                    x = words[:5] # First five words 
+                    t = words # Remainder of line
+                else:
+                    t += words
+        data_set.append((x, t[:300]))
     return data_set
 
 
@@ -52,20 +58,24 @@ def embed_data(data):
     for token in data:
         if token in glove.stoi:
             indices.append(glove.stoi[token])
-    ind_tensor = torch.tensor(indices, dtype=torch.long).unsqueeze(0)
+        else:
+            indices.append(glove.stoi.get('<pad>', 0)) 
+        ind_tensor = torch.tensor(indices, dtype=torch.long)
+
+    if len(indices) < 300:
+        # Pad if shorter
+        ind_tensor = torch.nn.functional.pad(ind_tensor, (0, 300 - len(indices)), value=glove.stoi.get('<pad>', 0))
+    else:
+        # Truncate if longer
+        ind_tensor = ind_tensor[:300]
     return ind_tensor
 
 
 global glove 
 glove = GloVe(name="6B",dim=300)
-'''
-data = load_data('data/merged_data.txt')
-# pre-trained glove
-input = "Once upon a time there was"
-embed_input = embed_data(input.split(), glove)
 
+data = load_data('data/merged_data.txt')
 train_data, val_data, test_data = split_data(data, 0.7, 0.15)
-train_data_glove = embed_data(train_data, glove)
-'''
+
 
 
