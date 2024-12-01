@@ -70,12 +70,21 @@ def embed_data(data):
         ind_tensor = ind_tensor[:300]
     return ind_tensor
 
+def embed_data_tuples(data):
+    """
+    Embeds training/val/test data
+    """
+    embedded = []
+    for x,t in data:
+        x_embed = embed_data(x)
+        t_embed = embed_data(t)
+        embedded.append((x_embed, t_embed))
+    return embedded
+
 
 global glove 
 glove = GloVe(name="6B",dim=300)
 
 data = load_data('data/merged_data.txt')
 train_data, val_data, test_data = split_data(data, 0.7, 0.15)
-
-
 
