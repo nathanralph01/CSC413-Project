@@ -88,3 +88,5 @@ glove = GloVe(name="6B",dim=300)
 data = load_data('data/merged_data.txt')
 train_data, val_data, test_data = split_data(data, 0.7, 0.15)
 
+temp = embed_data_tuples(train_data)
+print(len(temp))
