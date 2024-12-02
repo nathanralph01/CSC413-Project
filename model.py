@@ -10,7 +10,7 @@ class BidirectionalRNNGenerator(nn.Module):
     self.embedding = nn.Embedding.from_pretrained(glove.vectors)
     self.embedding.requires_grad = False
     self.bidirectionalrnn = nn.RNN(self.embedding_size, self.hidden_size, batch_first=True, bidirectional=True)
-    self.fully_connected = nn.Linear(2*hidden_size, self.embedding_size)
+    self.fully_connected = nn.Linear(2*hidden_size, self.vocab_size)
 
 
   def forward(self, X):
@@ -30,6 +30,4 @@ class BidirectionalRNNGenerator(nn.Module):
   # pretrained
   def parameters(self):
     return (parameter for parameter in super(BidirectionalRNNGenerator, self).parameters() if parameter.requires_grad)
-
-
 

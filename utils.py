@@ -3,6 +3,7 @@ import torch
 from torchtext.vocab import GloVe
 import numpy as np
 from utils import *
+import torch.nn as nn
 
 def load_data(path):
     """
@@ -81,6 +82,15 @@ def embed_data_tuples(data):
         embedded.append((x_embed, t_embed))
     return embedded
 
+def fetch_word_representation_of_story(model_output):
+  # if we run a singular prompt, the input model shape will be set to (300)
+  # after applying the model, our output shape will likely be set to (300, embedding_szie)
+  indices = torch.argmax(model_output, axis=1) # Same result if we did softmax before applying argmax
+  story = ""
+  for index in indices:
+    story += glove.itos[index]
+    story += " "
+  return story
 
 global glove 
 glove = GloVe(name="6B",dim=300)
