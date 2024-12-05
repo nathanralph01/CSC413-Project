@@ -3,7 +3,7 @@ from utils import *
 
 # Inspired from lab 10
 class BidirectionalRNNGenerator(nn.Module):
-  def __init__(self, hidden_size = 300):
+  def __init__(self, hidden_size = 159):
     super(BidirectionalRNNGenerator, self).__init__()
     self.vocab_size, self.embedding_size = glove.vectors.shape
     self.hidden_size = hidden_size # to match our limit of words in the story

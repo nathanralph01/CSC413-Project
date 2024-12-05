@@ -48,7 +48,7 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
             scaler.update()
             optimizer.zero_grad()
             count += 1
-            if count % 20 == 0:
+            if count % 5 == 0:
                     iters.append(count)
                     t = acc(model, train_data, batch_size)
                     v = acc(model, val_data, batch_size)
@@ -75,12 +75,13 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
 
 device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 
+"""
 if __name__ == '__main__':
-    start = time.time()
+    #start = time.time()
     model = BidirectionalRNNGenerator().to(device)
     train_data_embedded = embed_data_tuples(train_data[:10])
     val_data_embedded = embed_data_tuples(val_data[:10])
-    print("embedded data", time.time() - start)
-    #train(model, train_data_embedded, val_data_embedded, batch_size=2, num_epochs=1)
-
+   # print("embedded data", time.time()-start)
+    train(model, train_data_embedded, val_data_embedded, batch_size=2, num_epochs=1)
+"""
 
