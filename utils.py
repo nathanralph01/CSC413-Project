@@ -6,7 +6,9 @@ import torch.nn as nn
 from torchtext.data.utils import get_tokenizer
 
 global glove 
+global device
 glove = GloVe(name="6B",dim=100)
+device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 tokenizer = get_tokenizer("basic_english")
 
 
