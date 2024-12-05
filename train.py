@@ -3,6 +3,7 @@ import torch.optim as optim
 import matplotlib.pyplot as plt
 from model import BidirectionalRNNGenerator
 from utils import *
+import time
 
 def acc(model, dataset, batch_size):
     r = 0
@@ -74,9 +75,12 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
 
 device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 
-model = BidirectionalRNNGenerator().to(device)
-train_data_embedded = embed_data_tuples(train_data)
-val_data_embedded = embed_data_tuples(val_data)
-train(model, train_data_embedded, val_data_embedded, batch_size=8)
+if __name__ == '__main__':
+    start = time.time()
+    model = BidirectionalRNNGenerator().to(device)
+    train_data_embedded = embed_data_tuples(train_data[:10])
+    val_data_embedded = embed_data_tuples(val_data[:10])
+    print("embedded data", time.time() - start)
+    #train(model, train_data_embedded, val_data_embedded, batch_size=2, num_epochs=1)
 
 

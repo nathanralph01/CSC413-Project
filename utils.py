@@ -15,7 +15,7 @@ def load_data(path):
     if not os.path.exists(path):
         raise Exception("File path {} does not exist".format(path))
     data_set = []
-    with open(path, "r") as file:
+    with open(path, "r", encoding="utf-8") as file:
         x, t = [], []
         for line in file:
             stripped = line.strip()
@@ -135,8 +135,34 @@ def fetch_word_representation_of_story(model_output):
     story += " "
   return story
 
+def fetch_input():
+    prompt = ""
+    # TODO: come back to reading level after finishing the model
+    reading_level = 0
+    prompt_set = False
+    # reading_level_set = False
+    while not prompt_set:
+        prompt = input("Story prompt: ")
+        prompt = prompt.lower().split(sep=" ")
+        prompt = [words for words in prompt if words != ""]
+        if len(prompt) <= 0:
+            print("You must add a prompt with at least one word. Please try again")
+        else:
+            prompt_set = True
+
+    # while not reading_level_set:
+    #     try:
+    #         reading_level = int(input("Reading difficulty level (1-3): "))
+    #         if not (1 <= reading_level <= 3):
+    #             print("You must set a reading level between 1 to 3. Please try again")
+    #         else:
+    #             reading_level_set = True
+    #     except ValueError:
+    #         print("You must set a reading level between 1 to 3. Please try again")
+    return prompt, reading_level
+
 global glove 
-glove = GloVe(name="6B",dim=300)
+glove = GloVe(name="6B",dim=100)
 
 data = load_data('data/merged_data.txt')
 train_data, val_data, test_data = split_data(data, 0.7, 0.15)
