@@ -7,10 +7,12 @@ from torchtext.data.utils import get_tokenizer
 
 global glove 
 glove = GloVe(name="6B",dim=100)
+tokenizer = get_tokenizer("basic_english")
+
 
 def load_data(path):
     """
-    Load data set into a list. For each story, the data should look like: (first few words, remainder of story)
+    Load data set into a list. CHANGING: For each story, the data should look like: (first few words, remainder of story)
 
     Parameters:
         Path: Path of the data set
@@ -18,24 +20,28 @@ def load_data(path):
     if not os.path.exists(path):
         raise Exception("File path {} does not exist".format(path))
     data_set = []
+    # Load stories into a list
     with open(path, "r", encoding="utf-8") as file:
-        x, t = [], []
+        # , t = [], []
+        story = []
         for line in file:
             stripped = line.strip()
-            words = stripped.split()
-
+            words = tokenizer(stripped)
+    
             if stripped == '':
-                if x and t:
-                    data_set.append((x, t[:300]))
-                    x, t = [], []
+                if story:
+                    data_set.append(story[:300])
+                    #x, t = [], []
+                    story = []
             else:
                 # Check if it is a new story
-                if not x:
-                    x = words[:5] # First five words 
-                    t = words # Remainder of line
+                if not story:
+                    story = words
                 else:
-                    t += words
-        data_set.append((x, t[:300]))
+                    story += words
+        data_set.append(story)
+
+    
     return data_set
 
 
@@ -102,9 +108,8 @@ def embed_data_alt(data):
 def embed_data(data, default=len(glove)-1):
     result = []
     for text, label in data:
-        words = tokenizer(text) # for simplicity, we wont use <bos> and <eos>
         indices = []
-        for w in words:
+        for w in text:
             if w in glove.stoi:
                 indices.append(glove.stoi[w])
             else:
@@ -138,10 +143,9 @@ def embed_data_tuples(data):
     Embeds training/val/test data
     """
     embedded = []
-    for x,t in data:
-        x_embed = embed_data(x)
-        t_embed = embed_data(t)
-        embedded.append((x_embed, t_embed))
+    for story in data:
+        temp = embed_data(story)
+        embedded.append(temp)
     return embedded
 
 def fetch_word_representation_of_story(model_output):
@@ -180,10 +184,24 @@ def fetch_input():
     #         print("You must set a reading level between 1 to 3. Please try again")
     return prompt, reading_level
 
-
-tokenizer = get_tokenizer("basic_english")
+def create_training_sequences(data, seq_length):
+    formatted = []
+    for story in data:
+        sequences = []
+        for i in range(0, len(story)-seq_length):
+            seq_in = story[i:i+seq_length]
+            seq_out = story[i+seq_length]
+            sequences.append((seq_in, seq_out))
+        formatted.append(sequences)
+    return formatted
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
-data = load_data('data/merged_data.txt')
-train_data, val_data, test_data = split_data(data, 0.7, 0.15)
+data = load_data('data/stories2.txt') # using samller txt file for testing purposes
+
+# convert data to sequences in order to predict next character
+seq_data = create_training_sequences(data, 5)
+# embed data
+seq_data_embed = embed_data_tuples(seq_data)
+# split to train, val, test sets ->> MAY NEED TO CHANGE VAL AND TEST SETS
+train_data, val_data, test_data = split_data(seq_data_embed, 0.7, 0.15)
 
