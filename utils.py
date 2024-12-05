@@ -52,6 +52,49 @@ def split_data(data_set, train_split, val_split):
 
     return data_set[:train_num], data_set[train_num:val_num], data_set[val_num:]
 
+def get_glove_representation(list_of_words):
+  list_of_embedding = []
+  for word in list_of_words:
+    list_of_embedding.append(glove[word])
+  return list_of_embedding
+
+def embed_data_alt(data):
+  """
+  Alternative approach to embed a string into a tensor of indices from GloVe vocab.
+  Instead of padding, we use a certain number of words that is closest to each word of the data 
+  Issues so far:
+  - Takes a long time to embed (took 1m 17s to complete 15 items of the training set)
+  - Sometimes the length of the prompt was less than 300 (which could impact the length of the story)
+  Parameters:
+    data: A list of strings
+  """
+  indices = []
+
+  for token in data:
+      if token in glove.stoi:
+          indices.append(glove.stoi[token])
+      else:
+          indices.append(glove.stoi.get('<pad>', 0))
+      ind_tensor = torch.tensor(indices, dtype=torch.long)
+
+  remaining_words_to_add = 300 - len(data)
+  remaining_words_to_add_per_word = remaining_words_to_add // len(data)
+
+  list_of_embedding = get_glove_representation(data)
+
+  if len(indices) < 300:
+    # Pad if shorter
+    for embedding in list_of_embedding:
+        # Inspired by the euclidean distance calculation seen at lecture
+        distance = torch.norm(glove.vectors - embedding, dim=1)
+        lst_of_words_found = sorted(enumerate(distance.numpy()), key=lambda x: x[1])[:remaining_words_to_add_per_word]
+
+        lst_of_word_indices = torch.tensor([word_indices for (word_indices, distance) in lst_of_words_found], dtype=torch.long)
+        ind_tensor =  torch.cat((ind_tensor, lst_of_word_indices), -1)
+  else:
+      # Truncate if longer
+      ind_tensor = ind_tensor[:300]
+  return ind_tensor.to("cpu")
 
 def embed_data(data):
     indices = []
