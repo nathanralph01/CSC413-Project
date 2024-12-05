@@ -4,6 +4,8 @@ from torchtext.vocab import GloVe
 import numpy as np
 import torch.nn as nn
 from torchtext.data.utils import get_tokenizer
+from torch.nn.utils.rnn import pad_sequence
+
 
 global glove 
 global device
@@ -119,7 +121,14 @@ def embed_data(data, default=len(glove)-1):
                 # (least common word) appearing in the GloVe vocabluary as our
                 # '<pad>' token
                 indices.append(default)
-        result.append((indices, label),)
+        if label in glove.stoi:
+            label_glove = glove.stoi[label]
+        else:
+            label_glove = default
+
+        if len(indices) < 5:
+            indices += 5-len(indices)*default
+        result.append((indices, label_glove))
     return result
 
 # def embed_data(data):
@@ -197,6 +206,27 @@ def create_training_sequences(data, seq_length):
         formatted.append(sequences)
     return formatted
 
+
+def collate_fn(batch):
+    # Flatten the list of lists into a single list of (indices, label_glove)
+    flat_batch = [item for sublist in batch for item in sublist]
+    
+    # Extract inputs (indices) and labels (label_glove) from the flat batch
+    inputs, labels = zip(*flat_batch)
+
+    # Find the maximum length of input sequences in the batch
+    max_len = max(len(x) for x in inputs)
+
+    # Pad input sequences to the maximum length
+    padded_inputs = [x + [0] * (max_len - len(x)) for x in inputs]
+    
+    # Convert inputs and labels to tensors
+    padded_inputs = torch.tensor(padded_inputs, dtype=torch.long)
+    labels = torch.tensor(labels, dtype=torch.long)
+    
+    return padded_inputs, labels
+
+
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 data = load_data('data/stories2.txt') # using samller txt file for testing purposes
 
@@ -204,6 +234,8 @@ data = load_data('data/stories2.txt') # using samller txt file for testing purpo
 seq_data = create_training_sequences(data, 5)
 # embed data
 seq_data_embed = embed_data_tuples(seq_data)
+#print(seq_data_embed[0])
+
 # split to train, val, test sets ->> MAY NEED TO CHANGE VAL AND TEST SETS
 train_data, val_data, test_data = split_data(seq_data_embed, 0.7, 0.15)
 
