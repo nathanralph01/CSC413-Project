@@ -23,7 +23,8 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     #print(f"Total number of batches: {len(train_loader)}", enumerate(train_loader).shape)
 
-
+    output_size = glove.vectors.shape[0]
+    seq_length = 5
     # these lists will be used to track the training progress
     # and to plot the training curve
     #iters, train_loss, train_acc, val_acc = [], [], [], []
@@ -36,34 +37,35 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
     for e in range(num_epochs):
         torch.cuda.empty_cache()
         for i, (in_str, story) in enumerate(train_loader):
-     
+            current_batch_size = in_str.size(0)
             in_str, story = in_str.to(device), story.to(device)
-            hidden = model.init_hidden(batch_size).to(device)
+            hidden = model.init_hidden(current_batch_size).to(device)
             optimizer.zero_grad()
             output, hidden = model(in_str, hidden)
+
+            #reshape output
+            output = output.view(batch_size, seq_length, -1)
+            output_last = output[:, -1, :]
+            output_flat = output_last.reshape(-1, output_size)
+            targets_flat = story.view(-1)
+
+            loss = criterion(output_flat, targets_flat) # TODO # (10, 300, embedding_size)
+
+            scaler.scale(loss).backward() # propagate the gradients
+            scaler.step(optimizer) # update the parameters
+            scaler.update()
+            optimizer.zero_grad()
             count += 1
 
-            #mixed precision training
-            # with torch.cuda.amp.autocast():
-            #     z = model(in_str) # TODO
-            #     z = z.view(-1, len(glove.stoi))
-            #     story = story.view(-1)
-            #     loss = criterion(z, story) # TODO # (10, 300, embedding_size)
-
-            # scaler.scale(loss).backward() # propagate the gradients
-            # scaler.step(optimizer) # update the parameters
-            # scaler.update()
-            # optimizer.zero_grad()
-            # count += 1
-
-    #         if count % 5 == 0:
-    #                 iters.append(count)
-    #                 t = acc(model, train_data, batch_size)
-    #                 v = acc(model, val_data, batch_size)
-    #                 tloss.append(float(loss))
-    #                 tacc.append(t)
-    #                 vacc.append(v)
-    #                 print(count, "Loss:", float(loss), "Training Accuracy:", t, "Validation Accuracy:", v)
+            if count % 5 == 0:
+                    iters.append(count)
+                    #t = acc(model, train_data, batch_size)
+                    #v = acc(model, val_data, batch_size)
+                    tloss.append(float(loss))
+                    #tacc.append(t)
+                    #vacc.append(v)
+                    print(count, "Loss: ", float(loss))
+                    #print(count, "Loss:", float(loss), "Training Accuracy:", t, "Validation Accuracy:", v)
 
     # #
     # plt.figure()
@@ -86,11 +88,12 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
 if __name__ == '__main__':
     #start = time.time()
     model = BidirectionalRNNGenerator().to(device)
-    wrapped_data = StoryDataset(train_data[:10])
+    wrapped_data = StoryDataset(train_data[:1])
     #train_loader = torch.utils.data.DataLoader(wrapped_data, batch_size=2, shuffle=True)
-    #train(model, wrapped_data, val_data[:10], batch_size=2, num_epochs=1)
+    train(model, wrapped_data, val_data[:1], batch_size=2, num_epochs=5)
     x,t = wrapped_data[0]
-    #print(test_word_rep(x), glove.itos[t])
+    print("FROM TRAINING DATA: ")
+    print(test_word_rep(x), glove.itos[t])
     x,t = x.to(device), t.to(device)
     hidden = model.init_hidden(1).to(device)
     hidden = hidden.squeeze(1)
