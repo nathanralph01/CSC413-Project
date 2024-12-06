@@ -75,7 +75,7 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
             optimizer.zero_grad()
             count += 1
 
-            if count % 20 == 0:
+            if count % 100 == 0:
                     iters.append(count)
                     t = acc(model, train_data, batch_size)
                     v = acc(model, val_data, batch_size)
@@ -107,9 +107,10 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
 if __name__ == '__main__':
     #start = time.time()
     model = BidirectionalRNNGenerator().to(device)
-    wrapped_data = StoryDataset(train_data[:1])
-    wrapped_data_val = StoryDataset(val_data[:1])
+    wrapped_data = StoryDataset(train_data[:10])
+    wrapped_data_val = StoryDataset(val_data[:10])
     #train_loader = torch.utils.data.DataLoader(wrapped_data, batch_size=2, shuffle=True)
+    print("Beginning training...")
     train(model, wrapped_data, wrapped_data_val, batch_size=2, num_epochs=5)
     x,t = wrapped_data[0]
     print("FROM TRAINING DATA: ")
