@@ -44,10 +44,10 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
             output, hidden = model(in_str, hidden)
 
             #reshape output
-            output = output.view(batch_size, seq_length, -1)
+            output = output.reshape(batch_size, seq_length, -1)
             output_last = output[:, -1, :]
             output_flat = output_last.reshape(-1, output_size)
-            targets_flat = story.view(-1)
+            targets_flat = story.reshape(-1)
 
             loss = criterion(output_flat, targets_flat) # TODO # (10, 300, embedding_size)
 
