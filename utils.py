@@ -169,6 +169,13 @@ def fetch_word_representation_of_story(model_output):
         story += " "
     return story
 
+def test_word_rep(output):
+    story = ""
+    for index in output:
+        story += glove.itos[index]
+        story += " "
+    return story
+
 def fetch_input():
     prompt = ""
     # TODO: come back to reading level after finishing the model
@@ -206,25 +213,6 @@ def create_training_sequences(data, seq_length):
         formatted.append(sequences)
     return formatted
 
-
-def collate_fn(batch):
-    # Flatten the list of lists into a single list of (indices, label_glove)
-    flat_batch = [item for sublist in batch for item in sublist]
-    
-    # Extract inputs (indices) and labels (label_glove) from the flat batch
-    inputs, labels = zip(*flat_batch)
-
-    # Find the maximum length of input sequences in the batch
-    max_len = max(len(x) for x in inputs)
-
-    # Pad input sequences to the maximum length
-    padded_inputs = [x + [0] * (max_len - len(x)) for x in inputs]
-    
-    # Convert inputs and labels to tensors
-    padded_inputs = torch.tensor(padded_inputs, dtype=torch.long)
-    labels = torch.tensor(labels, dtype=torch.long)
-    
-    return padded_inputs, labels
 
 
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
