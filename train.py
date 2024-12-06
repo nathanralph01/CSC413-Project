@@ -7,24 +7,34 @@ import time
 import torch.nn.functional as F
 
 output_size = glove.vectors.shape[0]
+seq_length = 5
 
 def acc(model, dataset, batch_size):
     r = 0
     c = 0
-    loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=True, pin_memory=True, num_workers=2)
+    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, pin_memory=True, num_workers=2)
     for i, (in_str, target) in enumerate(loader):
         current_batch_size = in_str.size(0)
         in_str, target = in_str.to(device), target.to(device)
         hidden = model.init_hidden(current_batch_size).to(device)
         output, hidden = model(in_str, hidden)
-        
-        probabilities = F.softmax(output[-1], dim=0).detach().cpu()
-        top_prob, top_idx = torch.topk(probabilities, k=1)
-        next_word = top_idx.numpy()[0]
 
-        r += float(torch.sum((next_word == target).float()))
+        # Reshape output to match target's dimensions
+        output = output.reshape(batch_size, seq_length, -1)
+        output_last = output[:, -1, :]
+
+        # Apply softmax to the last dimension and get the top-k indices
+        probabilities = F.softmax(output_last, dim=-1).detach().cpu()
+        top_prob, top_idx = torch.topk(probabilities, k=1, dim=-1)
+        next_word = top_idx.squeeze(-1)
+
+        # Calculate accuracy
+        r += float(torch.sum(next_word == target.cpu()))
         c += target.numel()
     return r / c
+
+
+
 
 def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_epochs=10):
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
@@ -65,14 +75,13 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
             optimizer.zero_grad()
             count += 1
 
-            if count % 5 == 0:
+            if count % 20 == 0:
                     iters.append(count)
                     t = acc(model, train_data, batch_size)
                     v = acc(model, val_data, batch_size)
                     tloss.append(float(loss))
                     tacc.append(t)
                     vacc.append(v)
-                    print(count, "Loss: ", float(loss))
                     print(count, "Loss:", float(loss), "Training Accuracy:", t, "Validation Accuracy:", v)
 
     #
