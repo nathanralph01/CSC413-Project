@@ -6,15 +6,24 @@ from utils import *
 import time
 import torch.nn.functional as F
 
+output_size = glove.vectors.shape[0]
+
 def acc(model, dataset, batch_size):
     r = 0
     c = 0
     loader = torch.utils.data.DataLoader(dataset, batch_size, shuffle=True, pin_memory=True, num_workers=2)
-    for i, (int_str, story) in enumerate(loader):
-        z = model(int_str)
-        y = torch.argmax(z, axis=2)
-        r += float(torch.sum((story == y).float()))
-        c += story.numel()
+    for i, (in_str, target) in enumerate(loader):
+        current_batch_size = in_str.size(0)
+        in_str, target = in_str.to(device), target.to(device)
+        hidden = model.init_hidden(current_batch_size).to(device)
+        output, hidden = model(in_str, hidden)
+        
+        probabilities = F.softmax(output[-1], dim=0).detach().cpu()
+        top_prob, top_idx = torch.topk(probabilities, k=1)
+        next_word = top_idx.numpy()[0]
+
+        r += float(torch.sum((next_word == target).float()))
+        c += target.numel()
     return r / c
 
 def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_epochs=10):
@@ -23,7 +32,6 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     #print(f"Total number of batches: {len(train_loader)}", enumerate(train_loader).shape)
 
-    output_size = glove.vectors.shape[0]
     seq_length = 5
     # these lists will be used to track the training progress
     # and to plot the training curve
@@ -59,28 +67,30 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
 
             if count % 5 == 0:
                     iters.append(count)
-                    #t = acc(model, train_data, batch_size)
-                    #v = acc(model, val_data, batch_size)
+                    t = acc(model, train_data, batch_size)
+                    v = acc(model, val_data, batch_size)
                     tloss.append(float(loss))
-                    #tacc.append(t)
-                    #vacc.append(v)
+                    tacc.append(t)
+                    vacc.append(v)
                     print(count, "Loss: ", float(loss))
-                    #print(count, "Loss:", float(loss), "Training Accuracy:", t, "Validation Accuracy:", v)
+                    print(count, "Loss:", float(loss), "Training Accuracy:", t, "Validation Accuracy:", v)
 
-    # #
-    # plt.figure()
-    # plt.plot(iters[:len(tloss)], tloss)
-    # plt.title("Loss over iterations")
-    # plt.xlabel("Iterations")
-    # plt.ylabel("Loss")
+    #
+    plt.figure()
+    plt.plot(iters[:len(tloss)], tloss)
+    plt.title("Loss over iterations")
+    plt.xlabel("Iterations")
+    plt.ylabel("Loss")
+    plt.savefig("loss.png")
 
-    # plt.figure()
-    # plt.plot(iters[:len(tacc)], tacc)
-    # plt.plot(iters[:len(vacc)], vacc)
-    # plt.title("Accuracy over iterations")
-    # plt.xlabel("Iterations")
-    # plt.ylabel("Loss")
-    # plt.legend(["Train", "Validation"])
+    plt.figure()
+    plt.plot(iters[:len(tacc)], tacc)
+    plt.plot(iters[:len(vacc)], vacc)
+    plt.title("Accuracy over iterations")
+    plt.xlabel("Iterations")
+    plt.ylabel("Accuracy")
+    plt.legend(["Train", "Validation"])
+    plt.savefig("acc.png")
 
 
 ##TODO CREATE CUSTOM BATCH FUNCTION
@@ -89,8 +99,9 @@ if __name__ == '__main__':
     #start = time.time()
     model = BidirectionalRNNGenerator().to(device)
     wrapped_data = StoryDataset(train_data[:1])
+    wrapped_data_val = StoryDataset(val_data[:1])
     #train_loader = torch.utils.data.DataLoader(wrapped_data, batch_size=2, shuffle=True)
-    train(model, wrapped_data, val_data[:1], batch_size=2, num_epochs=5)
+    train(model, wrapped_data, wrapped_data_val, batch_size=2, num_epochs=5)
     x,t = wrapped_data[0]
     print("FROM TRAINING DATA: ")
     print(test_word_rep(x), glove.itos[t])
