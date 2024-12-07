@@ -5,7 +5,7 @@ import numpy as np
 import torch.nn as nn
 from torchtext.data.utils import get_tokenizer
 from torch.nn.utils.rnn import pad_sequence
-
+import string
 
 global glove 
 global device
@@ -13,10 +13,14 @@ glove = GloVe(name="6B",dim=100)
 device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 tokenizer = get_tokenizer("basic_english")
 
+def remove_punctuation(word):
+    translator = str.maketrans('', '', string.punctuation)
+    return word.translate(translator)
+
 
 def load_data(path):
     """
-    Load data set into a list. CHANGING: For each story, the data should look like: (first few words, remainder of story)
+    Load data set into a list.
 
     Parameters:
         Path: Path of the data set
@@ -29,8 +33,8 @@ def load_data(path):
         # , t = [], []
         story = []
         for line in file:
-            stripped = line.strip()
-            words = tokenizer(stripped)
+            stripped = line.strip().lower()
+            words = [remove_punctuation(word) for word in stripped.split()]#tokenizer(stripped)
     
             if stripped == '':
                 if story:
@@ -215,15 +219,6 @@ def create_training_sequences(data, seq_length):
 
 
 
-os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
-data = load_data('data/stories2.txt') # using samller txt file for testing purposes
 
-# convert data to sequences in order to predict next character
-seq_data = create_training_sequences(data, 5)
-# embed data
-seq_data_embed = embed_data_tuples(seq_data)
-#print(seq_data_embed[0])
-
-# split to train, val, test sets ->> MAY NEED TO CHANGE VAL AND TEST SETS
-train_data, val_data, test_data = split_data(seq_data_embed, 0.7, 0.15)
-
+data = load_data("data/stories2.txt")
+# Maybe remove punctuation from data
