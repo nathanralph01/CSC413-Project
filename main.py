@@ -1,26 +1,27 @@
 from utils import *
-from model import *
+from model import BidirectionalRNNGenerator
+from wrap import WrapDataset
 import torch
 from train import *
 
+# Run to test the model on a particular input
 device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 if __name__ == '__main__':
-    start = time.time()
     model = BidirectionalRNNGenerator().to(device)
-    train_data_embedded = embed_data_tuples(train_data[:10])
-    val_data_embedded = embed_data_tuples(val_data[:10])
-    print("embedded data", time.time()-start)
-    train(model, train_data_embedded, val_data_embedded, batch_size=2, num_epochs=10)
-    # test with there was once
+    state_dict = torch.load("model_state.pth")
+    model.load_state_dict(state_dict)
+    # load state dict
+
     try:
         while (True):
             story_prompt, reading_level_scale = fetch_input()
             # TODO: Pass the story prompt to model'
             # embed the input
-            story_prompt_glove = embed_data_alt(story_prompt)
-            model = BidirectionalRNNGenerator()
-            output_glove = model(story_prompt_glove)
-            print(fetch_word_representation_of_story(output_glove))
-            print("HERE SHOULD BE A STORY!!")
+            story_prompt_glove = glove_prompt = torch.tensor(embed_data(story_prompt), dtype=torch.long).to(device)
+            output_glove = generate_story(model, glove_prompt)
+            word_rep = fetch_word_representation_of_story(output_glove)
+            print(word_rep)
+            # Create generate story function
     except KeyboardInterrupt:
         print("\nGoodBye!")
+
