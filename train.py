@@ -109,7 +109,7 @@ if __name__ == '__main__':
     # Wrap the data so that it is compatible with DataLoader
     wrapped_data = WrapDataset(train_data[:1])
     wrapped_data_val = WrapDataset(val_data[:1])
-    
+
     model = BidirectionalRNNGenerator().to(device)
 
     print("Beginning training...")

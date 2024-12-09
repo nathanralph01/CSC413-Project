@@ -6,11 +6,14 @@ import torch.nn as nn
 from torchtext.data.utils import get_tokenizer
 from torch.nn.utils.rnn import pad_sequence
 import string
+import torch.nn.functional as F
+
 
 
 global glove 
 global device
 glove = GloVe(name="6B",dim=100)
+glove_vectors = glove.vectors
 device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 tokenizer = get_tokenizer("basic_english")
 
@@ -101,24 +104,32 @@ def embed_data(data, default=len(glove)-1):
         default: The padding token. Set as the last element in the glove embedding.
     """
     result = []
-    for text, label in data:
-        indices = []
-        for w in text:
-            if w in glove.stoi:
-                indices.append(glove.stoi[w])
+    if len(data[0]) == 2:
+        for text, label in data:
+            indices = []
+            for w in text:
+                if w in glove.stoi:
+                    indices.append(glove.stoi[w])
+                else:
+                    # this is a bit of a hack, but we will repurpose *last* word
+                    # (least common word) appearing in the GloVe vocabluary as our
+                    # '<pad>' token
+                    indices.append(default)
+            if label in glove.stoi:
+                label_glove = glove.stoi[label]
             else:
-                # this is a bit of a hack, but we will repurpose *last* word
-                # (least common word) appearing in the GloVe vocabluary as our
-                # '<pad>' token
-                indices.append(default)
-        if label in glove.stoi:
-            label_glove = glove.stoi[label]
-        else:
-            label_glove = default
+                label_glove = default
 
-        if len(indices) < 5:
-            indices += 5-len(indices)*default
-        result.append((indices, label_glove))
+            if len(indices) < 5:
+                indices += 5-len(indices)*default
+            result.append((indices, label_glove))
+    # data passed is from input prompt
+    else:
+        for word in data:
+            if word in glove.stoi:
+                result.append(glove.stoi[word])
+            else:
+                result.append(default)
     return result
 
 
@@ -202,3 +213,32 @@ def create_training_sequences(data, seq_length):
         formatted.append(sequences)
     return formatted
 
+
+
+def generate_story(model, prompt, story_length=300):
+    """
+    Generates a story given a prompt.
+
+    Parameters:
+        prompt: The first few words of a story as a tensor of GloVe indices.
+        model: The RNN model.
+        story_length: The length of the story.
+    """
+    model.eval()
+    story = prompt.clone()  # Start with the prompt
+
+    input_seq = prompt.to(device)  # Ensure prompt is in the right shape for the model
+    hidden = model.init_hidden(1).to(device)
+    hidden = hidden.squeeze(1)
+
+    with torch.no_grad():
+        for i in range(story_length - len(prompt)):
+            output, hidden = model(input_seq, hidden)
+            probabilities = F.softmax(output[-1], dim=0).detach().cpu()
+            top_prob, top_idx = torch.topk(probabilities, k=1)
+            next_word = top_idx.numpy()[0]
+            
+            story = torch.cat((story, torch.tensor([next_word], dtype=torch.long).to(device)), dim=0)
+            input_seq = torch.cat((input_seq[1:], torch.tensor([next_word], dtype=torch.long).to(device)))
+
+    return story

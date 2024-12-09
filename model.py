@@ -1,6 +1,5 @@
 import torch.nn as nn
 from utils import *
-from torch.utils.data import Dataset
 
 # Inspired from lab 10
 class BidirectionalRNNGenerator(nn.Module):
@@ -18,7 +17,7 @@ class BidirectionalRNNGenerator(nn.Module):
     # Find the word embedding for the prompt/start of sentence
     embedded_prompt = self.embedding(X)
     out, hidden = self.bidirectionalrnn(embedded_prompt, hidden) # size of the output will be (batch_size, sequence_length, 2*hidden_size)
-    out = out.contiguous().view(-1, self.hidden_size*2)
+    out = out.contiguous().reshape(-1, self.hidden_size*2)
     # Note the sequence_length is our time step, so to have 300 words in our sequence, our input sequence_length must have 300 words (will need
     # to deal with padding to ensure that case is possible)
 
@@ -35,19 +34,3 @@ class BidirectionalRNNGenerator(nn.Module):
   
   def init_hidden(self, batch_size):
     return torch.zeros(2, batch_size, self.hidden_size).to(device)
-
-
-
-class StoryDataset(Dataset):
-    def __init__(self, data):
-        self.data = data
-        # Flatten the list of tuples
-        self.flat_data = [item for sublist in self.data for item in sublist]
-
-    def __len__(self):
-        return len(self.flat_data)
-
-    def __getitem__(self, index):
-        x, t = self.flat_data[index]
-        return torch.tensor(x, dtype=torch.long), torch.tensor(t, dtype=torch.long)
-
