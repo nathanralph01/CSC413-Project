@@ -7,13 +7,21 @@ from torchtext.data.utils import get_tokenizer
 from torch.nn.utils.rnn import pad_sequence
 import string
 
+
 global glove 
 global device
 glove = GloVe(name="6B",dim=100)
 device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 tokenizer = get_tokenizer("basic_english")
 
+
 def remove_punctuation(word):
+    """
+    Removes punctuation characters from a string
+
+    Paramaters:
+        word: string
+    """
     translator = str.maketrans('', '', string.punctuation)
     return word.translate(translator)
 
@@ -69,51 +77,29 @@ def split_data(data_set, train_split, val_split):
 
     return data_set[:train_num], data_set[train_num:val_num], data_set[val_num:]
 
+
 def get_glove_representation(list_of_words):
+    """
+    Gets the glove representation of a list of word
+    
+    Parameters:
+        list_of_words: List of strings to get the glove representation of
+    """
     list_of_embedding = []
     for word in list_of_words:
         list_of_embedding.append(glove[word])
     return list_of_embedding
 
-def embed_data_alt(data):
-    """
-    Alternative approach to embed a string into a tensor of indices from GloVe vocab.
-    Instead of padding, we use a certain number of words that is closest to each word of the data 
-    Issues so far:
-    - Takes a long time to embed (took 1m 17s to complete 15 items of the training set)
-    - Sometimes the length of the prompt was less than 300 (which could impact the length of the story)
-    Parameters:
-        data: A list of strings
-    """
-    indices = []
-
-    for token in data:
-        if token in glove.stoi:
-            indices.append(glove.stoi[token])
-        else:
-            indices.append(glove.stoi.get('<pad>', 0))
-        ind_tensor = torch.tensor(indices, dtype=torch.long)
-
-    remaining_words_to_add = 300 - len(data)
-    remaining_words_to_add_per_word = remaining_words_to_add // len(data)
-
-    list_of_embedding = get_glove_representation(data)
-
-    if len(indices) < 300:
-        # Pad if shorter
-        for embedding in list_of_embedding:
-            # Inspired by the euclidean distance calculation seen at lecture
-            distance = torch.norm(glove.vectors - embedding, dim=1)
-            lst_of_words_found = sorted(enumerate(distance.numpy()), key=lambda x: x[1])[:remaining_words_to_add_per_word]
-
-            lst_of_word_indices = torch.tensor([word_indices for (word_indices, distance) in lst_of_words_found], dtype=torch.long)
-            ind_tensor =  torch.cat((ind_tensor, lst_of_word_indices), -1)
-    else:
-        # Truncate if longer
-        ind_tensor = ind_tensor[:300]
-    return ind_tensor.to("cpu")
 
 def embed_data(data, default=len(glove)-1):
+    """
+    Embed the data of a story into a tensor of indices from GloVe vocab.
+
+    Parameters:
+        data: A list of tuples. The first element of the tuple is a list of strings. The second is a string
+              The length of the first tuple element is constant throughout the list.
+        default: The padding token. Set as the last element in the glove embedding.
+    """
     result = []
     for text, label in data:
         indices = []
@@ -135,27 +121,14 @@ def embed_data(data, default=len(glove)-1):
         result.append((indices, label_glove))
     return result
 
-# def embed_data(data):
-#     indices = []
 
-#     for token in data:
-#         if token in glove.stoi:
-#             indices.append(glove.stoi[token])
-#         else:
-#             indices.append(glove.stoi.get('<pad>', 0)) 
-#         ind_tensor = torch.tensor(indices, dtype=torch.long)
 
-#     if len(indices) < 300:
-#         # Pad if shorter
-#         ind_tensor = torch.nn.functional.pad(ind_tensor, (0, 300 - len(indices)), value=glove.stoi.get('<pad>', 0))
-#     else:
-#         # Truncate if longer
-#         ind_tensor = ind_tensor[:300]
-#     return ind_tensor
-
-def embed_data_tuples(data):
+def embed_data_stories(data):
     """
-    Embeds training/val/test data
+    Embeds all the story data. Taken si from load_data.
+
+    Parameters:
+        data: A list of a list of tuples (check embed data)
     """
     embedded = []
     for story in data:
@@ -164,23 +137,23 @@ def embed_data_tuples(data):
     return embedded
 
 def fetch_word_representation_of_story(model_output):
-  # if we run a singular prompt, the input model shape will be set to (300)
-  # after applying the model, our output shape will likely be set to (300, embedding_szie)
-    indices = torch.argmax(model_output, axis=1) # Same result if we did softmax before applying argmax
+    """
+    Gets the english word representation of story given the model output.
+
+    Parameters:
+        model_output: The output of the model
+    """
     story = ""
-    for index in indices:
+    for index in model_output:
         story += glove.itos[index]
         story += " "
     return story
 
-def test_word_rep(output):
-    story = ""
-    for index in output:
-        story += glove.itos[index]
-        story += " "
-    return story
 
 def fetch_input():
+    """
+    Asks the user for a story prompt and reading level
+    """
     prompt = ""
     # TODO: come back to reading level after finishing the model
     reading_level = 0
@@ -207,6 +180,18 @@ def fetch_input():
     return prompt, reading_level
 
 def create_training_sequences(data, seq_length):
+    """
+    Converts the data into sequential format, for the purpose of training. 
+    The output is a list of stories. The format of each story is as follows:
+        [(word_1, word_2, ..., word_x), word_(x+1), (word_2, ..., word_(x+1)), word_(x+2),....]
+        
+        (word_1, word_2, ..., word_x) is the first x words to appear in the story. word_(x+1) is the next
+        word after this sequence.
+
+    Parameters:
+        data: The data to convert
+        seq_legnth: The length of the sequence
+    """
     formatted = []
     for story in data:
         sequences = []
@@ -217,8 +202,3 @@ def create_training_sequences(data, seq_length):
         formatted.append(sequences)
     return formatted
 
-
-
-
-data = load_data("data/stories2.txt")
-# Maybe remove punctuation from data
