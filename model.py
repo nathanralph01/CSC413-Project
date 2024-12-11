@@ -15,14 +15,11 @@ class BidirectionalRNNGenerator(nn.Module):
 
   def forward(self, X, hidden):
     # Find the word embedding for the prompt/start of sentence
-    embedded_prompt = self.embedding(X)
-    out, hidden = self.bidirectionalrnn(embedded_prompt, hidden) # size of the output will be (batch_size, sequence_length, 2*hidden_size)
-    out = out.contiguous().reshape(-1, self.hidden_size*2)
-    # Note the sequence_length is our time step, so to have 300 words in our sequence, our input sequence_length must have 300 words (will need
-    # to deal with padding to ensure that case is possible)
+    embedded_prompt = self.embedding(X) # resulting shape: (batch_size, sequence_length, 100)
+    out, hidden = self.bidirectionalrnn(embedded_prompt, hidden) # output shape: (batch_size, sequence_length, 2*300) and hidden shape:  (2, batch_size, 300)
+    out = out.contiguous().reshape(-1, self.hidden_size*2) # reshaped to: (batch_size * sequence_length, 2*300)
 
-    # Our z value should be the logit of the embedded words, therefore the size of the output should be (batch_size, sequence_length, embedding_size)
-    z = self.fully_connected(out)
+    z = self.fully_connected(out) # resulting shape: (batch_size * sequence_length, 400000)
     return z, hidden
 
 
@@ -31,6 +28,6 @@ class BidirectionalRNNGenerator(nn.Module):
   def parameters(self):
     return (parameter for parameter in super(BidirectionalRNNGenerator, self).parameters() if parameter.requires_grad)
 
-  
+
   def init_hidden(self, batch_size):
     return torch.zeros(2, batch_size, self.hidden_size).to(device)
