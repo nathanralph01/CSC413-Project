@@ -8,8 +8,6 @@ from torch.nn.utils.rnn import pad_sequence
 import string
 import torch.nn.functional as F
 
-
-
 global glove 
 global device
 glove = GloVe(name="6B",dim=100)
@@ -41,16 +39,14 @@ def load_data(path):
     data_set = []
     # Load stories into a list
     with open(path, "r", encoding="utf-8") as file:
-        # , t = [], []
         story = []
         for line in file:
             stripped = line.strip().lower()
-            words = [remove_punctuation(word) for word in stripped.split()]#tokenizer(stripped)
+            words = [remove_punctuation(word) for word in stripped.split()]
     
             if stripped == '':
                 if story:
                     data_set.append(story[:300])
-                    #x, t = [], []
                     story = []
             else:
                 # Check if it is a new story
@@ -166,10 +162,7 @@ def fetch_input():
     Asks the user for a story prompt and reading level
     """
     prompt = ""
-    # TODO: come back to reading level after finishing the model
-    reading_level = 0
     prompt_set = False
-    # reading_level_set = False
     while not prompt_set:
         prompt = input("Story prompt: ")
         prompt = prompt.lower().split(sep=" ")
@@ -179,16 +172,7 @@ def fetch_input():
         else:
             prompt_set = True
 
-    # while not reading_level_set:
-    #     try:
-    #         reading_level = int(input("Reading difficulty level (1-3): "))
-    #         if not (1 <= reading_level <= 3):
-    #             print("You must set a reading level between 1 to 3. Please try again")
-    #         else:
-    #             reading_level_set = True
-    #     except ValueError:
-    #         print("You must set a reading level between 1 to 3. Please try again")
-    return prompt, reading_level
+    return prompt
 
 def create_training_sequences(data, seq_length):
     """

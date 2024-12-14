@@ -15,13 +15,10 @@ if __name__ == '__main__':
     try:
         while (True):
             story_prompt, reading_level_scale = fetch_input()
-            # TODO: Pass the story prompt to model'
-            # embed the input
             story_prompt_glove = glove_prompt = torch.tensor(embed_data(story_prompt), dtype=torch.long).to(device)
             output_glove = generate_story(model, glove_prompt)
             word_rep = fetch_word_representation_of_story(output_glove)
             print(word_rep)
-            # Create generate story function
     except KeyboardInterrupt:
         print("\nGoodBye!")
 

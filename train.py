@@ -59,7 +59,7 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
             output_flat = output_last.reshape(-1, output_size)
             targets_flat = story.reshape(-1)
 
-            loss = criterion(output_flat, targets_flat) # TODO # (10, 300, embedding_size)
+            loss = criterion(output_flat, targets_flat)
 
             scaler.scale(loss).backward() # propagate the gradients
             scaler.step(optimizer) # update the parameters
@@ -76,7 +76,6 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
                     vacc.append(v)
                     print(count, "Loss:", float(loss), "Training Accuracy:", t, "Validation Accuracy:", v)
 
-    #
     plt.figure()
     plt.plot(iters[:len(tloss)], tloss)
     plt.title("Loss over iterations")
@@ -107,13 +106,13 @@ if __name__ == '__main__':
     # split to train, val, test sets ->> MAY NEED TO CHANGE VAL AND TEST SETS
     train_data, val_data, test_data = split_data(seq_data_embed, 0.7, 0.15)
     # Wrap the data so that it is compatible with DataLoader
-    wrapped_data = WrapDataset(train_data[:1])
-    wrapped_data_val = WrapDataset(val_data[:1])
+    wrapped_data = WrapDataset(train_data)
+    wrapped_data_val = WrapDataset(val_data)
 
     model = BidirectionalRNNGenerator().to(device)
 
     print("Beginning training...")
-    train(model, wrapped_data, wrapped_data_val, batch_size=2, num_epochs=2, learning_rate=0.003)
+    train(model, wrapped_data, wrapped_data_val, batch_size=2, num_epochs=2, learning_rate=0.0005)
     print("Training complete")
     torch.save(model.state_dict(), "model_state.pth")
 
