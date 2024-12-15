@@ -8,9 +8,9 @@ from train import *
 device = torch.device("cuda" if torch.cuda.is_available else "cpu")
 if __name__ == '__main__':
     model = BidirectionalRNNGenerator().to(device)
+    # load state dict 
     state_dict = torch.load("model_state.pth")
     model.load_state_dict(state_dict)
-    # load state dict
 
     try:
         while (True):

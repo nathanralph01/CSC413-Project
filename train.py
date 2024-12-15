@@ -36,7 +36,6 @@ def train(model, train_data, val_data, learning_rate=0.001, batch_size=100, num_
     train_loader = torch.utils.data.DataLoader(train_data, batch_size=batch_size, shuffle=True)
     criterion = nn.CrossEntropyLoss().to(device)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
-    #print(f"Total number of batches: {len(train_loader)}", enumerate(train_loader).shape)
 
     seq_length = 5
     # these lists will be used to track the training progress

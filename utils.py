@@ -107,9 +107,6 @@ def embed_data(data, default=len(glove)-1):
                 if w in glove.stoi:
                     indices.append(glove.stoi[w])
                 else:
-                    # this is a bit of a hack, but we will repurpose *last* word
-                    # (least common word) appearing in the GloVe vocabluary as our
-                    # '<pad>' token
                     indices.append(default)
             if label in glove.stoi:
                 label_glove = glove.stoi[label]
