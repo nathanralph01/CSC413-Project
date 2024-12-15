@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 from model import BidirectionalRNNGenerator
 from wrap import WrapDataset
 from utils import *
-import torch.nn.functional as F
 
 output_size = glove.vectors.shape[0]
 seq_length = 5

@@ -4,7 +4,6 @@ from torchtext.vocab import GloVe
 import numpy as np
 import torch.nn as nn
 from torchtext.data.utils import get_tokenizer
-from torch.nn.utils.rnn import pad_sequence
 import string
 import torch.nn.functional as F
 
